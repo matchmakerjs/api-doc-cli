@@ -36,6 +36,7 @@ export type ArraySchema = {
 
 export interface ObjectSchema {
     type: string,
+    format?: 'date-time',
     properties?: {
         [key: string]: SchemaRef | ArraySchema | ObjectSchema;
     }
