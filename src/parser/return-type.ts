@@ -1,9 +1,6 @@
 import * as ts from "typescript";
 
-export function getReturnType(methodDeclaration: ts.MethodDeclaration): ts.Node | string {
-    if (methodDeclaration.type?.kind === ts.SyntaxKind.StringKeyword) {
-        return 'string';
-    }
+export function getReturnType(methodDeclaration: ts.MethodDeclaration): ts.Node {
     if (methodDeclaration.type?.kind === ts.SyntaxKind.TypeReference) {
         let identifier: ts.Identifier;
         const typeArgs: ts.Node[] = [];
@@ -15,8 +12,9 @@ export function getReturnType(methodDeclaration: ts.MethodDeclaration): ts.Node 
             }
         });
         if (identifier.text === 'Promise' && typeArgs.length === 1) {
+            // console.log('Promise', typeArgs[0]?.kind);
             return typeArgs[0];
         }
     }
-    return null;
+    return methodDeclaration.type;
 }

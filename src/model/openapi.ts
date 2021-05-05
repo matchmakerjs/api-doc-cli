@@ -1,9 +1,6 @@
 export type OpenApiContent = {
-    [key: string]: SchemaRef | {
-        schema: {
-            type: string;
-            nullable?: boolean
-        };
+    [key: string]: {
+        schema: (SchemaRef | ArraySchema) & { nullable?: boolean };
     };
 };
 
@@ -29,19 +26,22 @@ export interface Response {
 }
 
 export type SchemaRef = {
-    schema: {
-        $ref: string;
-    };
+    $ref: string;
 };
 
-export interface Schema {
+export type ArraySchema = {
+    type: string;
+    items?: SchemaRef | ArraySchema
+};
+
+export interface ObjectSchema {
     type: string,
     properties?: {
-        [key: string]: OpenApiType;
+        [key: string]: SchemaRef | ArraySchema | ObjectSchema;
     }
 }
 
-export type OpenApiType = SchemaRef | Schema;
+export type Schema = SchemaRef | ArraySchema | ObjectSchema;
 
 export interface Info {
     title: string,
@@ -62,6 +62,6 @@ export interface Api {
     servers?: any[],
     paths: { [key: string]: Path },
     components?: {
-        schemas: { [key: string]: Schema }
+        schemas: { [key: string]: ObjectSchema }
     }
 }

@@ -8,11 +8,11 @@ export interface Endpoint {
     handlerName: string,
     paths: string[],
     methods: string[],
-    request: ts.Node | string,
-    response: ts.Node | string
+    request: ts.Node,
+    response: ts.Node
 }
 
-export function getEnpoints(classDeclaration: ts.ClassDeclaration, controllerDecorators: MatchedDecorator[]): Endpoint[] {
+export function getEnpoints(classDeclaration: ts.ClassDeclaration | ts.InterfaceDeclaration, controllerDecorators: MatchedDecorator[]): Endpoint[] {
     const endpoints: Endpoint[] = [];
 
     const controllerPaths = controllerDecorators.map(cd => {
@@ -85,7 +85,7 @@ function getPath(controllerPath: string[], callExpression: ts.CallExpression): s
     }
     return controllerPath.flatMap(cp => {
         return handlerPaths.map(hp => {
-            return `${cp}/${hp}`.replace(/\/{2,}/g, '/');
+            return `/${cp}/${hp}`.replace(/\/{2,}/g, '/').replace(/\/$/, '');
         });
     });
 }
