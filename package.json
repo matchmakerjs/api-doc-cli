@@ -1,0 +1,39 @@
+{
+  "name": "rest-doc-generator",
+  "version": "1.0.0",
+  "description": "OpenAPI doc generator for node-rest",
+  "main": "dist/cli.js",
+  "bin": {
+    "@rest-doc": "dist/cli.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rimraf -rf dist && tsc && chmod +x dist/cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/olaleyeone/node-rest-doc-generator.git"
+  },
+  "keywords": [
+    "openapi",
+    "rest"
+  ],
+  "author": "Olaleye Afolabi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/olaleyeone/node-rest-doc-generator/issues"
+  },
+  "homepage": "https://github.com/olaleyeone/node-rest-doc-generator#readme",
+  "dependencies": {
+    "@olaleyeone/node-rest": "^0.0.1",
+    "oclif": "^1.17.0",
+    "typescript": "^4.2.4",
+    "yargs": "^17.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^15.0.2",
+    "@types/yargs": "^16.0.1",
+    "rimraf": "^2.7.1",
+    "ts-node": "^9.1.1"
+  }
+}
