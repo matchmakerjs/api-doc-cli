@@ -1,4 +1,4 @@
-import { Get, Post } from "@olaleyeone/node-rest";
+import { Delete, Get, Head, Patch, Post, Put } from "@olaleyeone/node-rest";
 import * as ts from "typescript";
 import { MatchedDecorator } from "../decorator-parser";
 import { getPayloadType } from "./payload-type";
@@ -15,10 +15,19 @@ export interface Endpoint {
 export function getEnpoints(classDeclaration: ts.ClassDeclaration | ts.InterfaceDeclaration, controllerDecorators: MatchedDecorator[]): Endpoint[] {
     const endpoints: Endpoint[] = [];
 
-    const controllerPaths = controllerDecorators.map(cd => {
+    const controllerPaths = controllerDecorators.flatMap(cd => {
         for (const arg of cd.argument) {
             if (arg.kind === ts.SyntaxKind.StringLiteral) {
                 return (<ts.StringLiteral>arg).text;
+            }
+            if (arg.kind === ts.SyntaxKind.ArrayLiteralExpression) {
+                const result: string[] = [];
+                arg.forEachChild(c => {
+                    if (c.kind === ts.SyntaxKind.StringLiteral) {
+                        result.push((<ts.StringLiteral>c).text);
+                    }
+                });
+                return result;
             }
         }
         return '';
@@ -51,19 +60,21 @@ function getRouteDoc(controllerPath: string[], methodDeclaration: ts.MethodDecla
                     return;
                 }
 
-                if ((<ts.Identifier>it).text === Get.name) {
+                const method = (<ts.Identifier>it).text;
+
+                if ([Get.name, Head.name, Delete.name].includes(method)) {
                     routeDoc = {
                         handlerName: methodDeclaration.name.getText(),
-                        methods: ['get'],
+                        methods: [method.toLowerCase()],
                         paths: getPath(controllerPath, callExpression),
                         request: null,
                         response: getReturnType(methodDeclaration)
                     };
                 }
-                if ((<ts.Identifier>it).text === Post.name) {
+                if ([Post.name, Put.name, Patch.name].includes(method)) {
                     routeDoc = {
                         handlerName: methodDeclaration.name.getText(),
-                        methods: ['post'],
+                        methods: [method.toLowerCase()],
                         paths: getPath(controllerPath, callExpression),
                         request: getPayloadType(methodDeclaration),
                         response: getReturnType(methodDeclaration)
@@ -81,6 +92,15 @@ function getPath(controllerPath: string[], callExpression: ts.CallExpression): s
         const expression = callExpression.arguments[0];
         if (expression.kind === ts.SyntaxKind.StringLiteral) {
             handlerPaths = [(<ts.StringLiteral>expression).text];
+        }
+        if (expression.kind === ts.SyntaxKind.ArrayLiteralExpression) {
+            const result: string[] = [];
+            expression.forEachChild(c => {
+                if (c.kind === ts.SyntaxKind.StringLiteral) {
+                    result.push((<ts.StringLiteral>c).text);
+                }
+            });
+            return result;
         }
     }
     return controllerPath.flatMap(cp => {

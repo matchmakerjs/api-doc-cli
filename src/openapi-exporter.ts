@@ -85,16 +85,16 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
                             schema: {
                                 type: 'string'
                             }
-                        })
+                        });
                     });
                     return result;
                 }).join('/')}`;
-                console.log(path, signature);
                 if (!paths[signature]) {
                     paths[signature] = {};
                 }
                 endpoint.methods.forEach(method => {
                     paths[signature][method] = routeDoc;
+                    console.log(method, signature);
                 });
             })
         });
