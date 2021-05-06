@@ -1,18 +1,14 @@
 import * as ts from "typescript";
-import { ClassMetadata } from "../model/class-metadata";
+import { TypeMetadata } from "../model/type-metadata";
 import { Schema, ObjectSchema, SchemaRef } from "../model/openapi";
 
 export class OpenApiSchemaFactory {
-    private typeMap = new Map<string, ClassMetadata<ts.ClassDeclaration | ts.InterfaceDeclaration>>();
-    private enumMap = new Map<string, ClassMetadata<ts.EnumDeclaration>>();
+    private typeMap = new Map<string, TypeMetadata<ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration>>();
+    // private enumMap = new Map<string, ClassMetadata<ts.EnumDeclaration>>();
     schemaMap: { [key: string]: ObjectSchema } = {};
 
-    addClass(sourceFile: ts.SourceFile, c: ts.ClassDeclaration | ts.InterfaceDeclaration) {
+    addType(sourceFile: ts.SourceFile, c: ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration) {
         this.typeMap.set(c.name.text, { declaration: c, sourceFile });
-    }
-
-    addEnum(sourceFile: ts.SourceFile, c: ts.EnumDeclaration) {
-        this.enumMap.set(c.name.text, { declaration: c, sourceFile });
     }
 
     getNodeSchema(node: ts.TypeNode | ts.Node): Schema {
@@ -71,7 +67,7 @@ export class OpenApiSchemaFactory {
         return this.schemaMap;
     }
 
-    getClassMetadata(id: ts.Identifier): ClassMetadata<ts.ClassDeclaration | ts.InterfaceDeclaration> {
+    getClassMetadata(id: ts.Identifier): TypeMetadata<ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration> {
         return this.typeMap.get(id.text);
     }
 
@@ -109,23 +105,22 @@ export class OpenApiSchemaFactory {
     }
 
     private resolveByIdentifier(id: ts.Identifier, node: ts.TypeNode | ts.Node): Schema {
-        const enumMetadata = this.enumMap.get(id.text);
-        if (enumMetadata) {
+        const classMetadata = this.typeMap.get(id.text);
+        if (!classMetadata) {
+            return;
+        }
+
+        if (classMetadata.declaration.kind === ts.SyntaxKind.EnumDeclaration) {
             const members: ts.EnumMember[] = [];
-            enumMetadata.declaration.forEachChild(c => {
+            classMetadata.declaration.forEachChild(c => {
                 if (c.kind === ts.SyntaxKind.EnumMember) {
                     members.push(<ts.EnumMember>c);
                 }
             });
             return {
                 type: 'string',
-                enum: members.map(m => m.name.getText(enumMetadata.sourceFile))
+                enum: members.map(m => m.name.getText(classMetadata.sourceFile))
             }
-        }
-
-        const classMetadata = this.typeMap.get(id.text);
-        if (!classMetadata) {
-            return;
         }
         if (classMetadata.declaration.getSourceFile().hasNoDefaultLib) {
             switch (classMetadata.declaration.name.text) {

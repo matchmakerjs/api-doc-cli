@@ -8,12 +8,8 @@ export class OpenApiContentFactory {
 
     }
 
-    addClass(sourceFile: ts.SourceFile, c: ts.ClassDeclaration | ts.InterfaceDeclaration) {
-        this.schemaFactory.addClass(sourceFile, c);
-    }
-
-    addEnum(sourceFile: ts.SourceFile, c: ts.EnumDeclaration) {
-        this.schemaFactory.addEnum(sourceFile, c);
+    addType(sourceFile: ts.SourceFile, c: ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration) {
+        this.schemaFactory.addType(sourceFile, c);
     }
 
     getRequestBody(endpoint: Endpoint): {
