@@ -12,6 +12,10 @@ export class OpenApiContentFactory {
         this.schemaFactory.addClass(sourceFile, c);
     }
 
+    addEnum(sourceFile: ts.SourceFile, c: ts.EnumDeclaration) {
+        this.schemaFactory.addEnum(sourceFile, c);
+    }
+
     getRequestBody(endpoint: Endpoint): {
         content: OpenApiContent,
         required: boolean

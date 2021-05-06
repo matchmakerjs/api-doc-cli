@@ -34,7 +34,10 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory) {
     sourceFiles.forEach(sourceFile => {
         const classes = getClasses(sourceFile);
         classes.forEach(c => {
-            // console.log(c.name.text);
+            if (c.kind === ts.SyntaxKind.EnumDeclaration) {
+                contentFactory.addEnum(sourceFile, c);
+                return;
+            }
             contentFactory.addClass(sourceFile, c);
 
             if (!c.getSourceFile() || c.getSourceFile().isDeclarationFile) {

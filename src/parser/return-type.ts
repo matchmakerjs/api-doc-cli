@@ -12,7 +12,6 @@ export function getReturnType(methodDeclaration: ts.MethodDeclaration): ts.Node 
             }
         });
         if (identifier.text === 'Promise' && typeArgs.length === 1) {
-            // console.log('Promise', typeArgs[0]?.kind);
             return typeArgs[0];
         }
     }
