@@ -50,11 +50,11 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
         });
     });
 
+    const operationsMap: { [key: string]: number } = {};
     controllerMap.forEach((val, key) => {
         const endpoints = getEnpoints(key, val);
         // console.log(it.name.text, endpoints);
         endpoints.forEach(endpoint => {
-            // console.log(endpoint.paths);
             const routeDoc: RouteDoc = {
                 operationId: endpoint.handlerName,
                 tags: [key.name.text],
@@ -89,12 +89,23 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
                     });
                     return result;
                 }).join('/')}`;
+
                 if (!paths[signature]) {
                     paths[signature] = {};
                 }
                 endpoint.methods.forEach(method => {
-                    paths[signature][method] = routeDoc;
-                    console.log(method, signature);
+                    const it: RouteDoc = Object.assign({}, routeDoc);
+                    let operationId = endpoint.handlerName;
+                    if (operationId in operationsMap) {
+                        operationsMap[operationId] = operationsMap[operationId] + 1;
+                        it.operationId = `${operationId}${operationsMap[operationId]}`;
+                        // console.warn(`duplicate method name ${endpoint.handlerName}`);
+                    } else {
+                        operationsMap[operationId] = 0;
+                    }
+
+                    paths[signature][method] = it;
+                    console.log(method, signature, it.operationId);
                 });
             })
         });

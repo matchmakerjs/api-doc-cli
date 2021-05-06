@@ -31,9 +31,10 @@ export function getPayloadType(methodDeclaration: ts.MethodDeclaration): ts.Node
     payloadParams[0].forEachChild(c => {
         if (c.kind === ts.SyntaxKind.Identifier) {
             identifier = <ts.Identifier>c;
-        }
-        if (c.kind === ts.SyntaxKind.TypeReference) {
+        } else if (c.kind === ts.SyntaxKind.TypeReference || c.kind === ts.SyntaxKind.ArrayType) {
             type = c;
+        } else if(c.kind!==ts.SyntaxKind.Decorator){
+            console.log(c.kind);
         }
     });
 
