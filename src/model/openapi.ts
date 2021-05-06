@@ -4,7 +4,7 @@ export type OpenApiContent = {
     };
 };
 
-export interface Path {
+export interface OpenApiPath {
     [key: string]: RouteDoc
 }
 
@@ -17,7 +17,16 @@ export interface RouteDoc {
     },
     responses: {
         [key: string]: { description: string, content: OpenApiContent }
-    }
+    },
+    parameters: Parameter[]
+}
+
+export interface Parameter {
+    name: string,
+    in: 'path' | 'query',
+    description?: string,
+    required: boolean,
+    schema?: ObjectSchema
 }
 
 export interface Response {
@@ -62,7 +71,7 @@ export interface Api {
     openapi: string,
     info: Info,
     servers?: any[],
-    paths: { [key: string]: Path },
+    paths: { [key: string]: OpenApiPath },
     components?: {
         schemas: { [key: string]: ObjectSchema }
     }

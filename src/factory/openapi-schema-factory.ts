@@ -4,7 +4,6 @@ import { Schema, ObjectSchema, SchemaRef } from "../model/openapi";
 
 export class OpenApiSchemaFactory {
     private typeMap = new Map<string, TypeMetadata<ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration>>();
-    // private enumMap = new Map<string, ClassMetadata<ts.EnumDeclaration>>();
     schemaMap: { [key: string]: ObjectSchema } = {};
 
     addType(sourceFile: ts.SourceFile, c: ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration) {

@@ -1,8 +1,8 @@
-import { RestController } from '@olaleyeone/node-rest';
+import { RestController, parseUrl } from '@olaleyeone/node-rest';
 import * as ts from "typescript";
 import { OpenApiContentFactory } from './factory/openapi-content-factory';
 import { OpenApiSchemaFactory } from './factory/openapi-schema-factory';
-import { Api, Path as OpenApiPath, RouteDoc } from './model/openapi';
+import { Api, OpenApiPath, RouteDoc } from './model/openapi';
 import { getEnpoints } from './parser/api/endpoint-parser';
 import { getDecorator, MatchedDecorator } from './parser/decorator-parser';
 import { getClasses } from './parser/file-parser';
@@ -25,12 +25,12 @@ export function exportOpenApiDoc(entryPoint: string): Api {
     return apiDoc;
 }
 
-
-function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory) {
+function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): { [key: string]: OpenApiPath } {
     const sourceFiles = program.getSourceFiles();
     const controllerMap = new Map<ts.ClassDeclaration | ts.InterfaceDeclaration, MatchedDecorator[]>();
 
     const paths: { [key: string]: OpenApiPath } = {};
+
     sourceFiles.forEach(sourceFile => {
         const classes = getClasses(sourceFile);
         classes.forEach(c => {
@@ -59,7 +59,8 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory) {
                 operationId: endpoint.handlerName,
                 tags: [key.name.text],
                 responses: contentFactory.getResponses(endpoint),
-                requestBody: contentFactory.getRequestBody(endpoint)
+                requestBody: contentFactory.getRequestBody(endpoint),
+                parameters: []
             };
             for (const prop in routeDoc) {
                 if (!(routeDoc as any)[prop]) {
@@ -68,9 +69,32 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory) {
             }
 
             endpoint.paths.forEach(path => {
-                paths[path] = {};
+                const segments = parseUrl(path);
+                const signature = `/${segments.map(segment => {
+                    let result = '';
+                    segment.parts.forEach(part => {
+                        if (typeof part === 'string') {
+                            result += part;
+                            return;
+                        }
+                        result += `{${part.name}}`;
+                        routeDoc.parameters.push({
+                            name: part.name,
+                            in: 'path',
+                            required: true,
+                            schema: {
+                                type: 'string'
+                            }
+                        })
+                    });
+                    return result;
+                }).join('/')}`;
+                console.log(path, signature);
+                if (!paths[signature]) {
+                    paths[signature] = {};
+                }
                 endpoint.methods.forEach(method => {
-                    paths[path][method] = routeDoc;
+                    paths[signature][method] = routeDoc;
                 });
             })
         });
