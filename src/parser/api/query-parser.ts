@@ -25,8 +25,8 @@ export function parseQueryParameters(contentFactory: OpenApiContentFactory, meth
 
             contentFactory.getType(id)?.declaration.forEachChild(c => {
                 if (c.kind === ts.SyntaxKind.PropertyDeclaration || c.kind === ts.SyntaxKind.PropertySignature) {
-                    const parameter = toParameter(c as any);
-                    if (parameter) parameters.push(parameter);
+                    const parameter = toParameter(contentFactory, c as any);
+                    if (parameter) parameters.push(...parameter);
                 }
             });
         }
@@ -35,19 +35,89 @@ export function parseQueryParameters(contentFactory: OpenApiContentFactory, meth
     return parameters;
 }
 
-function toParameter(property: ts.PropertyDeclaration | ts.PropertySignature): Parameter {
+function toParameter(contentFactory: OpenApiContentFactory, property: ts.PropertyDeclaration | ts.PropertySignature): Parameter[] {
     if (property.type.kind === ts.SyntaxKind.TypeReference) {
-        return;
+        return typeReferenceToParams(contentFactory, property);
     }
     const schema = toSchema(property.type)
     if (!schema) {
         return;
     }
-    return {
+    return [{
         in: 'query',
         name: property.name.getText(),
         schema
-    };
+    }];
+}
+
+function typeReferenceToParams(contentFactory: OpenApiContentFactory, property: ts.PropertyDeclaration | ts.PropertySignature): Parameter[] {
+    let id: ts.Identifier;
+    const typeArgs: ts.Node[] = [];
+
+    property.type.forEachChild(c => {
+        if (c.kind === ts.SyntaxKind.Identifier) {
+            id = <ts.Identifier>c;
+        }
+    });
+
+    if (!id) {
+        return [];
+    }
+    const type = contentFactory.getType(id);
+    if (!type) {
+        return;
+    }
+    if (type.sourceFile.hasNoDefaultLib) {
+        switch (type.declaration.name.text) {
+            case Array.name:
+                const arrayTypeArgs: ts.Node[] = [];
+                property.type.forEachChild(c => {
+                    if (c.kind === ts.SyntaxKind.Identifier) {
+                        return;
+                    } else {
+                        arrayTypeArgs.push(c);
+                    }
+                });
+                const arrayTypeSchema = arrayTypeArgs.length==1 && toSchema(arrayTypeArgs[0]);
+                if (arrayTypeSchema) {
+                    return [{
+                        in: 'query',
+                        name: property.name.getText(),
+                        schema: {
+                            type: 'array',
+                            items: arrayTypeSchema // needs work, consider array of dates
+                        }
+                    }];
+                }
+                break;
+            case Date.name:
+                return [{
+                    in: 'query',
+                    name: property.name.getText(),
+                    schema: {
+                        type: 'string',
+                        format: 'date-time'
+                    }
+                }];
+        }
+    }
+    switch (type.declaration.kind) {
+        case ts.SyntaxKind.EnumDeclaration:
+            const members: ts.EnumMember[] = [];
+            type.declaration.forEachChild(c => {
+                if (c.kind === ts.SyntaxKind.EnumMember) {
+                    members.push(<ts.EnumMember>c);
+                }
+            });
+            return [{
+                in: 'query',
+                name: property.name.getText(),
+                schema: {
+                    type: 'string',
+                    enum: members.map(m => m.name.getText(type.sourceFile))
+                }
+            }];
+    }
 }
 
 function toSchema(node: ts.Node): Schema {
