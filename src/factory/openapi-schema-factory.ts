@@ -10,7 +10,7 @@ export class OpenApiSchemaFactory {
         this.typeMap.set(c.name.text, { declaration: c, sourceFile });
     }
 
-    getNodeSchema(node: ts.TypeNode | ts.Node): Schema {
+    getNodeSchema(node: ts.TypeNode | ts.Node, schemaMap?: { [key: string]: ts.Node }): Schema {
         let type: string;
         switch (node.kind) {
             case ts.SyntaxKind.BooleanKeyword:
@@ -25,24 +25,33 @@ export class OpenApiSchemaFactory {
                 break;
             case ts.SyntaxKind.TypeReference:
                 let id: ts.Identifier;
+                const typeArgs: ts.Node[] = [];
+
                 node.forEachChild(c => {
                     if (c.kind === ts.SyntaxKind.Identifier) {
                         id = <ts.Identifier>c;
+                    } else if (c.kind === ts.SyntaxKind.TypeReference) {
+                        typeArgs.push(c);
                     }
                 });
-                const result = id && this.resolveByIdentifier(id, node);
+
+                const result = id && this.resolveByIdentifier(id, node, typeArgs, schemaMap);
                 if (result) return result;
-                node.forEachChild(c => {
-                    if (c.kind === ts.SyntaxKind.Identifier) {
-                        return;
-                    }
-                    console.log(id?.text, c.kind);
-                });
                 break;
             case ts.SyntaxKind.ArrayType:
                 let itemType: Schema;
                 node.forEachChild(r => {
-                    itemType = this.getNodeSchema(r);
+                    if (!schemaMap) {
+                        itemType = this.getNodeSchema(r, schemaMap);
+                        return;
+                    }
+                    let id: ts.Identifier;
+                    r.forEachChild(c => {
+                        if (c.kind === ts.SyntaxKind.Identifier) {
+                            id = <ts.Identifier>c;
+                        }
+                    });
+                    itemType = this.getNodeSchema(schemaMap[id.text] || r, schemaMap);
                 });
                 return {
                     type: 'array',
@@ -51,7 +60,7 @@ export class OpenApiSchemaFactory {
         }
         if (type) return { type };
 
-        console.log('unresolved kind', node.kind);
+        console.warn('unresolved kind', node.kind);
         node.forEachChild(c => {
             if (c.kind === ts.SyntaxKind.Identifier) {
                 console.log((<ts.Identifier>c).text, (<ts.Identifier>c).getSourceFile()?.fileName);
@@ -70,40 +79,72 @@ export class OpenApiSchemaFactory {
         return this.typeMap.get(id.text);
     }
 
-    private getClassSchema(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration): SchemaRef {
-        let schema = this.schemaMap[declaration.name.text];
-        if (!schema) {
-            schema = this.createObjectSchema(declaration);
-            this.schemaMap[declaration.name.text] = schema;
+    private getClassSchema(
+        declaration: ts.ClassDeclaration | ts.InterfaceDeclaration,
+        typeArgs: ts.Node[],
+        schemaMap: { [key: string]: ts.Node }): SchemaRef {
+
+        let schemaName = declaration.name.text;
+        if (typeArgs?.length) {
+            const names: string[] = [];
+            typeArgs.forEach(arg => {
+                arg.forEachChild(c => {
+                    if (c.kind === ts.SyntaxKind.Identifier) {
+                        names.push((c as ts.Identifier).text);
+                    }
+                });
+            });
+            schemaName = `${schemaName}Of${names.join('')}`;
         }
-        return { $ref: `#/components/schemas/${declaration.name.text}` };
+        let schema = this.schemaMap[schemaName];
+        if (!schema) {
+            schema = this.createObjectSchema(declaration, typeArgs, schemaMap);
+            this.schemaMap[schemaName] = schema;
+        }
+        return { $ref: `#/components/schemas/${schemaName}` };
     }
 
-    private createObjectSchema(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration): ObjectSchema {
+    private createObjectSchema(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration, typeArgs: ts.Node[], parentSchemaMap: { [key: string]: ts.Node }): ObjectSchema {
         // console.log(declaration.name.text, declaration.getSourceFile().fileName, declaration.getSourceFile().hasNoDefaultLib);
+        const typeParams = new Map<ts.Node, ts.Node>();
+        const propertyNodes: (ts.PropertyDeclaration | ts.PropertySignature)[] = [];
+
+        declaration.forEachChild(c => {
+            if (c.kind === ts.SyntaxKind.PropertyDeclaration || c.kind === ts.SyntaxKind.PropertySignature) {
+                propertyNodes.push(<ts.PropertyDeclaration>c);
+            } else if (c.kind === ts.SyntaxKind.TypeParameter) {
+                typeParams.set(c, typeArgs[typeParams.size]);
+            }
+        });
+
+        const schemaMap: { [key: string]: ts.Node } = Object.create(parentSchemaMap || {});
+        typeParams.forEach((val, key) => {
+            if (!val) {
+                return;
+            }
+            key.forEachChild(c => {
+                if (c.kind !== ts.SyntaxKind.Identifier) {
+                    return;
+                }
+                schemaMap[(c as ts.Identifier).text] = val;
+            });
+        });
+
         const properties: {
             [key: string]: Schema
         } = {};
-        declaration.forEachChild(c => {
-            let property: ts.PropertyDeclaration | ts.PropertySignature;
 
-            if (c.kind === ts.SyntaxKind.PropertyDeclaration) {
-                property = <ts.PropertyDeclaration>c;
-            } else if (c.kind === ts.SyntaxKind.PropertySignature) {
-                property = <ts.PropertySignature>c;
-            }
-
-            if (property) {
-                properties[property.name.getText()] = this.getNodeSchema(property.type);
-            }
+        propertyNodes.forEach(property => {
+            properties[property.name.getText()] = this.getNodeSchema(property.type, schemaMap);
         });
+
         return {
             type: 'object',
             properties
         }
     }
 
-    private resolveByIdentifier(id: ts.Identifier, node: ts.TypeNode | ts.Node): Schema {
+    private resolveByIdentifier(id: ts.Identifier, node: ts.TypeNode | ts.Node, typeArgs: ts.Node[], schemaMap: { [key: string]: ts.Node }): Schema {
         const classMetadata = this.typeMap.get(id.text);
         if (!classMetadata) {
             return;
@@ -121,6 +162,7 @@ export class OpenApiSchemaFactory {
                 enum: members.map(m => m.name.getText(classMetadata.sourceFile))
             }
         }
+
         if (classMetadata.declaration.getSourceFile().hasNoDefaultLib) {
             switch (classMetadata.declaration.name.text) {
                 // case Promise.name:
@@ -149,10 +191,12 @@ export class OpenApiSchemaFactory {
                     });
                     return {
                         type: 'array',
-                        items: this.getNodeSchema(arrayTypeArgs[0])
+                        items: this.getNodeSchema(arrayTypeArgs[0], schemaMap)
                     }
             }
         }
-        return this.getClassSchema(classMetadata.declaration);
+
+        // console.log(classMetadata.declaration.name.text, typeArgs.length);
+        return this.getClassSchema(classMetadata.declaration, typeArgs, schemaMap);
     }
 }

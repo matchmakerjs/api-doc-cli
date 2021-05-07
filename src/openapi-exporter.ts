@@ -105,7 +105,7 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
                     }
 
                     paths[signature][method] = it;
-                    console.log(method, signature, it.operationId);
+                    console.log(`${it.operationId}:`, method.toUpperCase(), signature);
                 });
             })
         });
