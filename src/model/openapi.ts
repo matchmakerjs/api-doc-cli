@@ -25,8 +25,8 @@ export interface Parameter {
     name: string,
     in: 'path' | 'query',
     description?: string,
-    required: boolean,
-    schema?: ObjectSchema
+    required?: boolean,
+    schema?: Schema
 }
 
 export interface Response {

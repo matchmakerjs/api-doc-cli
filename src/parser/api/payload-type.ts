@@ -21,6 +21,7 @@ export function getPayloadType(methodDeclaration: ts.MethodDeclaration): ts.Node
             return val;
         }).length;
     });
+
     if (payloadParams.length !== 1) {
         return null;
     }
@@ -33,7 +34,7 @@ export function getPayloadType(methodDeclaration: ts.MethodDeclaration): ts.Node
             identifier = <ts.Identifier>c;
         } else if (c.kind === ts.SyntaxKind.TypeReference || c.kind === ts.SyntaxKind.ArrayType) {
             type = c;
-        } else if(c.kind!==ts.SyntaxKind.Decorator){
+        } else if (c.kind !== ts.SyntaxKind.Decorator) {
             console.log(c.kind);
         }
     });

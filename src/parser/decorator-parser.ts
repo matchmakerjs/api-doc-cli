@@ -5,7 +5,7 @@ export interface MatchedDecorator {
     argument: ts.NodeArray<ts.Expression>
 }
 
-export function getDecorator(node: ts.Node, identifier: string): MatchedDecorator[] {
+export function getDecorators(node: ts.Node, identifier: string): MatchedDecorator[] {
     const matched: MatchedDecorator[] = [];
     node.decorators?.forEach(decorator => {
         decorator.forEachChild(c => {

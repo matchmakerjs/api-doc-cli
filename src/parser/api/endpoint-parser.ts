@@ -5,7 +5,7 @@ import { getPayloadType } from "./payload-type";
 import { getReturnType } from "../return-type";
 
 export interface Endpoint {
-    handlerName: string,
+    declaration: ts.MethodDeclaration,
     paths: string[],
     methods: string[],
     request: ts.Node,
@@ -64,7 +64,7 @@ function getRouteDoc(controllerPath: string[], methodDeclaration: ts.MethodDecla
 
                 if ([Get.name, Head.name, Delete.name].includes(method)) {
                     routeDoc = {
-                        handlerName: methodDeclaration.name.getText(),
+                        declaration: methodDeclaration,
                         methods: [method.toLowerCase()],
                         paths: getPath(controllerPath, callExpression),
                         request: null,
@@ -73,7 +73,7 @@ function getRouteDoc(controllerPath: string[], methodDeclaration: ts.MethodDecla
                 }
                 if ([Post.name, Put.name, Patch.name].includes(method)) {
                     routeDoc = {
-                        handlerName: methodDeclaration.name.getText(),
+                        declaration: methodDeclaration,
                         methods: [method.toLowerCase()],
                         paths: getPath(controllerPath, callExpression),
                         request: getPayloadType(methodDeclaration),

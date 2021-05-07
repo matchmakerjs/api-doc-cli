@@ -10,9 +10,14 @@ export class OpenApiSchemaFactory {
         this.typeMap.set(c.name.text, { declaration: c, sourceFile });
     }
 
+    getType(id: ts.Identifier): TypeMetadata<ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration> {
+        return this.typeMap.get(id.text);
+    }
+
     getNodeSchema(node: ts.TypeNode | ts.Node, schemaMap?: { [key: string]: ts.Node }): Schema {
         let type: string;
         switch (node.kind) {
+
             case ts.SyntaxKind.BooleanKeyword:
                 type = 'boolean';
                 break;
@@ -22,21 +27,6 @@ export class OpenApiSchemaFactory {
                 break;
             case ts.SyntaxKind.StringKeyword:
                 type = 'string';
-                break;
-            case ts.SyntaxKind.TypeReference:
-                let id: ts.Identifier;
-                const typeArgs: ts.Node[] = [];
-
-                node.forEachChild(c => {
-                    if (c.kind === ts.SyntaxKind.Identifier) {
-                        id = <ts.Identifier>c;
-                    } else if (c.kind === ts.SyntaxKind.TypeReference) {
-                        typeArgs.push(c);
-                    }
-                });
-
-                const result = id && this.resolveByIdentifier(id, node, typeArgs, schemaMap);
-                if (result) return result;
                 break;
             case ts.SyntaxKind.ArrayType:
                 let itemType: Schema;
@@ -57,6 +47,22 @@ export class OpenApiSchemaFactory {
                     type: 'array',
                     items: itemType
                 };
+
+            case ts.SyntaxKind.TypeReference:
+                let id: ts.Identifier;
+                const typeArgs: ts.Node[] = [];
+
+                node.forEachChild(c => {
+                    if (c.kind === ts.SyntaxKind.Identifier) {
+                        id = <ts.Identifier>c;
+                    } else if (c.kind === ts.SyntaxKind.TypeReference) {
+                        typeArgs.push(c);
+                    }
+                });
+
+                const result = id && this.resolveByIdentifier(id, node, typeArgs, schemaMap);
+                if (result) return result;
+                break;
         }
         if (type) return { type };
 
@@ -111,7 +117,7 @@ export class OpenApiSchemaFactory {
 
         declaration.forEachChild(c => {
             if (c.kind === ts.SyntaxKind.PropertyDeclaration || c.kind === ts.SyntaxKind.PropertySignature) {
-                propertyNodes.push(<ts.PropertyDeclaration>c);
+                propertyNodes.push(c as any);
             } else if (c.kind === ts.SyntaxKind.TypeParameter) {
                 typeParams.set(c, typeArgs[typeParams.size]);
             }

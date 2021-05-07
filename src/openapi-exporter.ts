@@ -4,7 +4,8 @@ import { OpenApiContentFactory } from './factory/openapi-content-factory';
 import { OpenApiSchemaFactory } from './factory/openapi-schema-factory';
 import { Api, OpenApiPath, RouteDoc } from './model/openapi';
 import { getEnpoints } from './parser/api/endpoint-parser';
-import { getDecorator, MatchedDecorator } from './parser/decorator-parser';
+import { parseQueryParameters } from './parser/api/query-parser';
+import { getDecorators, MatchedDecorator } from './parser/decorator-parser';
 import { getClasses } from './parser/file-parser';
 
 export function exportOpenApiDoc(entryPoint: string): Api {
@@ -42,7 +43,7 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
             if (!c.getSourceFile() || c.getSourceFile().isDeclarationFile) {
                 return;
             }
-            const matched = getDecorator(c, RestController.name);
+            const matched = getDecorators(c, RestController.name);
             if (!matched?.length) {
                 return;
             }
@@ -53,20 +54,20 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
     const operationsMap: { [key: string]: number } = {};
     controllerMap.forEach((val, key) => {
         const endpoints = getEnpoints(key, val);
-        // console.log(it.name.text, endpoints);
         endpoints.forEach(endpoint => {
             const routeDoc: RouteDoc = {
-                operationId: endpoint.handlerName,
+                operationId: endpoint.declaration.name.getText(),
                 tags: [key.name.text],
                 responses: contentFactory.getResponses(endpoint),
                 requestBody: contentFactory.getRequestBody(endpoint),
-                parameters: []
+                parameters: parseQueryParameters(contentFactory, endpoint.declaration)
             };
             for (const prop in routeDoc) {
                 if (!(routeDoc as any)[prop]) {
                     delete (routeDoc as any)[prop];
                 }
             }
+
 
             endpoint.paths.forEach(path => {
                 const segments = parseUrl(path);
@@ -95,7 +96,7 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
                 }
                 endpoint.methods.forEach(method => {
                     const it: RouteDoc = Object.assign({}, routeDoc);
-                    let operationId = endpoint.handlerName;
+                    let operationId = endpoint.declaration.name.getText();
                     if (operationId in operationsMap) {
                         operationsMap[operationId] = operationsMap[operationId] + 1;
                         it.operationId = `${operationId}${operationsMap[operationId]}`;

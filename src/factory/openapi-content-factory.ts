@@ -1,5 +1,6 @@
 import * as ts from "typescript";
 import { OpenApiContent } from "../model/openapi";
+import { TypeMetadata } from "../model/type-metadata";
 import { Endpoint } from "../parser/api/endpoint-parser";
 import { OpenApiSchemaFactory } from "./openapi-schema-factory";
 
@@ -10,6 +11,10 @@ export class OpenApiContentFactory {
 
     addType(sourceFile: ts.SourceFile, c: ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration) {
         this.schemaFactory.addType(sourceFile, c);
+    }
+
+    getType(id: ts.Identifier): TypeMetadata<ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration> {
+        return this.schemaFactory.getType(id);
     }
 
     getRequestBody(endpoint: Endpoint): {
