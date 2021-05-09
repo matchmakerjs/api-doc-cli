@@ -10,7 +10,44 @@ export function parseQueryParameters(contentFactory: OpenApiContentFactory, meth
     methodDeclaration.parameters.forEach(parameter => {
         let matched = getDecorators(parameter, QueryParameter.name);
         if (matched.length) {
-
+            let paramName: string;
+            let schema: Schema;
+            parameter.forEachChild(c => {
+                if (c.kind === ts.SyntaxKind.Identifier) {
+                    return;
+                }
+                if (c.kind === ts.SyntaxKind.Decorator) {
+                    c.forEachChild(c1 => {
+                        c1.forEachChild(c2 => {
+                            if (c2.kind === ts.SyntaxKind.StringLiteral) {
+                                paramName = (<ts.StringLiteral>c2).text;
+                            }
+                        });
+                    });
+                    return;
+                }
+                if (c.kind === ts.SyntaxKind.ArrayType) {
+                    c.forEachChild(c1 => {
+                        const arrayTypeSchema = toSchema(c1);
+                        if (arrayTypeSchema) {
+                            schema = {
+                                type: 'array',
+                                items: arrayTypeSchema // needs work, consider array of dates
+                            };
+                        }
+                    });
+                } else {
+                    schema = toSchema(c);
+                }
+            });
+            if (schema && paramName) {
+                parameters.push({
+                    in: 'query',
+                    name: paramName,
+                    schema: schema
+                });
+            }
+            return parameters;
         }
 
         matched = getDecorators(parameter, Query.name);
@@ -78,7 +115,7 @@ function typeReferenceToParams(contentFactory: OpenApiContentFactory, property: 
                         arrayTypeArgs.push(c);
                     }
                 });
-                const arrayTypeSchema = arrayTypeArgs.length==1 && toSchema(arrayTypeArgs[0]);
+                const arrayTypeSchema = arrayTypeArgs.length == 1 && toSchema(arrayTypeArgs[0]);
                 if (arrayTypeSchema) {
                     return [{
                         in: 'query',
