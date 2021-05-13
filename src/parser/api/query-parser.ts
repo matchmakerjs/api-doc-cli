@@ -107,6 +107,7 @@ function typeReferenceToParams(contentFactory: OpenApiContentFactory, property: 
     if (type.sourceFile.hasNoDefaultLib) {
         switch (type.declaration.name.text) {
             case Array.name:
+            case Set.name:
                 const arrayTypeArgs: ts.Node[] = [];
                 property.type.forEachChild(c => {
                     if (c.kind === ts.SyntaxKind.Identifier) {

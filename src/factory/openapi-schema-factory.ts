@@ -16,8 +16,10 @@ export class OpenApiSchemaFactory {
 
     getNodeSchema(node: ts.TypeNode | ts.Node, schemaMap?: { [key: string]: ts.Node }): Schema {
         let type: string;
+        if (!node) {
+            return;
+        }
         switch (node.kind) {
-
             case ts.SyntaxKind.BooleanKeyword:
                 type = 'boolean';
                 break;
@@ -187,6 +189,7 @@ export class OpenApiSchemaFactory {
                         format: 'date-time'
                     }
                 case Array.name:
+                case Set.name:
                     const arrayTypeArgs: ts.Node[] = [];
                     node.forEachChild(c => {
                         if (c.kind === ts.SyntaxKind.Identifier) {
