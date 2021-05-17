@@ -123,7 +123,8 @@ function typeReferenceToParams(contentFactory: OpenApiContentFactory, property: 
                         name: property.name.getText(),
                         schema: {
                             type: 'array',
-                            items: arrayTypeSchema // needs work, consider array of dates
+                            items: arrayTypeSchema, // needs work, consider array of dates,
+                            uniqueItems: type.declaration.name.text===Set.name
                         }
                     }];
                 }

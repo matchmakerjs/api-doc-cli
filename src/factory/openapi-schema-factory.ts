@@ -47,7 +47,8 @@ export class OpenApiSchemaFactory {
                 });
                 return {
                     type: 'array',
-                    items: itemType
+                    items: itemType,
+                    uniqueItems: false
                 };
 
             case ts.SyntaxKind.TypeReference:
@@ -200,7 +201,8 @@ export class OpenApiSchemaFactory {
                     });
                     return {
                         type: 'array',
-                        items: this.getNodeSchema(arrayTypeArgs[0], schemaMap)
+                        items: this.getNodeSchema(arrayTypeArgs[0], schemaMap),
+                        uniqueItems: classMetadata.declaration.name.text===Set.name
                     }
             }
         }

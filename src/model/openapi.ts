@@ -40,7 +40,8 @@ export type SchemaRef = {
 
 export type ArraySchema = {
     type: string;
-    items?: SchemaRef | ArraySchema
+    items?: SchemaRef | ArraySchema,
+    uniqueItems?: boolean
 };
 
 export interface ObjectSchema {
