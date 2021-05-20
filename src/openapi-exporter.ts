@@ -68,7 +68,6 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
                 }
             }
 
-
             endpoint.paths.forEach(path => {
                 const segments = parseUrl(path);
                 const signature = `/${segments.map(segment => {

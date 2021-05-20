@@ -17,6 +17,10 @@ export class OpenApiContentFactory {
         return this.schemaFactory.getType(id);
     }
 
+    getSchema(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration) {
+        return this.schemaFactory.getClassSchema(declaration, [], {});
+    }
+
     getRequestBody(endpoint: Endpoint): {
         content: OpenApiContent,
         required: boolean

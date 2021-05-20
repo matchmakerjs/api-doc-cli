@@ -60,7 +60,15 @@ export function parseQueryParameters(contentFactory: OpenApiContentFactory, meth
                 }
             });
 
-            contentFactory.getType(id)?.declaration.forEachChild(c => {
+            const targetType = contentFactory.getType(id);
+            if (!targetType) {
+                return;
+            }
+            if (targetType.declaration.kind !== ts.SyntaxKind.EnumDeclaration) {
+                contentFactory.getSchema(targetType.declaration);
+            }
+
+            targetType.declaration.forEachChild(c => {
                 if (c.kind === ts.SyntaxKind.PropertyDeclaration || c.kind === ts.SyntaxKind.PropertySignature) {
                     const parameter = toParameter(contentFactory, c as any);
                     if (parameter) parameters.push(...parameter);
@@ -124,7 +132,7 @@ function typeReferenceToParams(contentFactory: OpenApiContentFactory, property: 
                         schema: {
                             type: 'array',
                             items: arrayTypeSchema, // needs work, consider array of dates,
-                            uniqueItems: type.declaration.name.text===Set.name
+                            uniqueItems: type.declaration.name.text === Set.name
                         }
                     }];
                 }

@@ -88,7 +88,7 @@ export class OpenApiSchemaFactory {
         return this.typeMap.get(id.text);
     }
 
-    private getClassSchema(
+    getClassSchema(
         declaration: ts.ClassDeclaration | ts.InterfaceDeclaration,
         typeArgs: ts.Node[],
         schemaMap: { [key: string]: ts.Node }): SchemaRef {
@@ -105,6 +105,7 @@ export class OpenApiSchemaFactory {
             });
             schemaName = `${schemaName}Of${names.join('')}`;
         }
+        
         let schema = this.schemaMap[schemaName];
         if (!schema) {
             schema = this.createObjectSchema(declaration, typeArgs, schemaMap);
@@ -202,7 +203,7 @@ export class OpenApiSchemaFactory {
                     return {
                         type: 'array',
                         items: this.getNodeSchema(arrayTypeArgs[0], schemaMap),
-                        uniqueItems: classMetadata.declaration.name.text===Set.name
+                        uniqueItems: classMetadata.declaration.name.text === Set.name
                     }
             }
         }
