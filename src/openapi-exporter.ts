@@ -20,13 +20,13 @@ export function exportOpenApiDoc(entryPoint: string): Api {
             title: 'open-api doc',
             version: 'v1'
         },
-        paths: getPaths(program, contentFactory)
+        paths: getPaths(program, schemaFactory, contentFactory)
     };
     apiDoc.components = { schemas: schemaFactory.getAll() };
     return apiDoc;
 }
 
-function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): { [key: string]: OpenApiPath } {
+function getPaths(program: ts.Program, schemaFactory: OpenApiSchemaFactory, contentFactory: OpenApiContentFactory): { [key: string]: OpenApiPath } {
     const sourceFiles = program.getSourceFiles();
     const controllerMap = new Map<ts.ClassDeclaration | ts.InterfaceDeclaration, MatchedDecorator[]>();
 
@@ -35,7 +35,7 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
     sourceFiles.forEach(sourceFile => {
         const classes = getClasses(sourceFile);
         classes.forEach(c => {
-            contentFactory.addType(sourceFile, c);
+            schemaFactory.addType(sourceFile, c);
             if (c.kind === ts.SyntaxKind.EnumDeclaration) {
                 return;
             }
@@ -60,7 +60,7 @@ function getPaths(program: ts.Program, contentFactory: OpenApiContentFactory): {
                 tags: [key.name.text],
                 responses: contentFactory.getResponses(endpoint),
                 requestBody: contentFactory.getRequestBody(endpoint),
-                parameters: parseQueryParameters(contentFactory, endpoint.declaration)
+                parameters: parseQueryParameters(schemaFactory, endpoint.declaration)
             };
             for (const prop in routeDoc) {
                 if (!(routeDoc as any)[prop]) {

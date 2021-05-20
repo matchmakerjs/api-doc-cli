@@ -91,8 +91,34 @@ export class OpenApiSchemaFactory {
     getClassSchema(
         declaration: ts.ClassDeclaration | ts.InterfaceDeclaration,
         typeArgs: ts.Node[],
+        schemaMap: { [key: string]: ts.Node }): ObjectSchema {
+        let schemaName = this.getSchemaName(declaration, typeArgs);
+        const schema = this.schemaMap[schemaName];
+        if (schema) {
+            return schema;
+        }
+        if (!this.getClassSchemaRef(declaration, typeArgs, schemaMap)) {
+            return;
+        }
+        return this.schemaMap[schemaName];
+    }
+
+    getClassSchemaRef(
+        declaration: ts.ClassDeclaration | ts.InterfaceDeclaration,
+        typeArgs: ts.Node[],
         schemaMap: { [key: string]: ts.Node }): SchemaRef {
 
+        let schemaName = this.getSchemaName(declaration, typeArgs);
+
+        let schema = this.schemaMap[schemaName];
+        if (!schema) {
+            schema = this.createObjectSchema(declaration, typeArgs, schemaMap);
+            this.schemaMap[schemaName] = schema;
+        }
+        return { $ref: `#/components/schemas/${schemaName}` };
+    }
+
+    private getSchemaName(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration, typeArgs: ts.Node[]) {
         let schemaName = declaration.name.text;
         if (typeArgs?.length) {
             const names: string[] = [];
@@ -105,13 +131,7 @@ export class OpenApiSchemaFactory {
             });
             schemaName = `${schemaName}Of${names.join('')}`;
         }
-        
-        let schema = this.schemaMap[schemaName];
-        if (!schema) {
-            schema = this.createObjectSchema(declaration, typeArgs, schemaMap);
-            this.schemaMap[schemaName] = schema;
-        }
-        return { $ref: `#/components/schemas/${schemaName}` };
+        return schemaName;
     }
 
     private createObjectSchema(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration, typeArgs: ts.Node[], parentSchemaMap: { [key: string]: ts.Node }): ObjectSchema {
@@ -209,6 +229,6 @@ export class OpenApiSchemaFactory {
         }
 
         // console.log(classMetadata.declaration.name.text, typeArgs.length);
-        return this.getClassSchema(classMetadata.declaration, typeArgs, schemaMap);
+        return this.getClassSchemaRef(classMetadata.declaration, typeArgs, schemaMap);
     }
 }
