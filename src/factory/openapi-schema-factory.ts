@@ -111,11 +111,13 @@ export class OpenApiSchemaFactory {
         let schemaName = this.getSchemaName(declaration, typeArgs);
 
         let schema = this.schemaMap[schemaName];
+        const schemaRef = { $ref: `#/components/schemas/${schemaName}` };
         if (!schema) {
+            this.schemaMap[schemaName] = schemaRef as any;
             schema = this.createObjectSchema(declaration, typeArgs, schemaMap);
             this.schemaMap[schemaName] = schema;
         }
-        return { $ref: `#/components/schemas/${schemaName}` };
+        return schemaRef;
     }
 
     private getSchemaName(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration, typeArgs: ts.Node[]) {
@@ -134,7 +136,10 @@ export class OpenApiSchemaFactory {
         return schemaName;
     }
 
-    private createObjectSchema(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration, typeArgs: ts.Node[], parentSchemaMap: { [key: string]: ts.Node }): ObjectSchema {
+    private createObjectSchema(
+        declaration: ts.ClassDeclaration | ts.InterfaceDeclaration,
+        typeArgs: ts.Node[],
+        parentSchemaMap: { [key: string]: ts.Node }): ObjectSchema {
         // console.log(declaration.name.text, declaration.getSourceFile().fileName, declaration.getSourceFile().hasNoDefaultLib);
         const typeParams = new Map<ts.Node, ts.Node>();
         const propertyNodes: (ts.PropertyDeclaration | ts.PropertySignature)[] = [];
