@@ -55,12 +55,14 @@ export class OpenApiSchemaFactory {
                 const { identifier: id, typeArgs } = this.getIdentifierAndTypeArgs(node);
                 if (id) {
                     if (schemaMap && schemaMap[id.text]) {
+                        if (schemaMap[id.text].kind === ts.SyntaxKind.VoidKeyword) {
+                            return;
+                        }
                         return this.getNodeSchema((schemaMap[id.text]), schemaMap);
                     }
                     const result = this.resolveByIdentifier(id, node, typeArgs, schemaMap);
                     if (result) return result;
                 }
-
                 break;
         }
         if (type) return { type };
@@ -91,11 +93,7 @@ export class OpenApiSchemaFactory {
         node.forEachChild(c => {
             if (c.kind === ts.SyntaxKind.Identifier) {
                 id = <ts.Identifier>c;
-            } else if (c.kind === ts.SyntaxKind.TypeReference
-                || c.kind === ts.SyntaxKind.StringKeyword
-                || c.kind === ts.SyntaxKind.NumberKeyword
-                || c.kind === ts.SyntaxKind.BigIntKeyword
-                || c.kind === ts.SyntaxKind.BooleanKeyword) {
+            } else {
                 typeArgs.push(c);
             }
         });
@@ -142,14 +140,16 @@ export class OpenApiSchemaFactory {
         if (typeArgs?.length) {
             const names: string[] = [];
             typeArgs.forEach(arg => {
-                if (arg.kind === ts.SyntaxKind.StringKeyword) {
+                if (arg.kind === ts.SyntaxKind.VoidKeyword) {
+                    names.push('Void');
+                } else if (arg.kind === ts.SyntaxKind.StringKeyword) {
                     names.push('String');
                 } else if (arg.kind === ts.SyntaxKind.NumberKeyword
                     || arg.kind === ts.SyntaxKind.BigIntKeyword) {
                     names.push('Number');
                 } else if (arg.kind === ts.SyntaxKind.BooleanKeyword) {
                     names.push('Boolean');
-                } else {
+                } else if (arg.kind === ts.SyntaxKind.TypeReference) {
                     const { identifier, typeArgs } = this.getIdentifierAndTypeArgs(arg);
                     if (!typeArgs) {
                         names.push(identifier.text);
@@ -162,7 +162,7 @@ export class OpenApiSchemaFactory {
                     }
                 }
             });
-            schemaName = `${schemaName}Of${names.join('')}`;
+            schemaName = `${schemaName}Of${names.join('And')}`;
         }
         return schemaName;
     }
