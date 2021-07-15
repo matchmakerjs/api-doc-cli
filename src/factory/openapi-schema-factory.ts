@@ -11,7 +11,7 @@ export class OpenApiSchemaFactory {
     }
 
     getType(id: ts.Identifier): TypeMetadata<ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration> {
-        return this.typeMap.get(id.text);
+        return this.getClassMetadata(id);
     }
 
     getNodeSchema(node: ts.TypeNode | ts.Node, schemaMap?: { [key: string]: ts.Node }): Schema {
@@ -52,19 +52,15 @@ export class OpenApiSchemaFactory {
                 };
 
             case ts.SyntaxKind.TypeReference:
-                let id: ts.Identifier;
-                const typeArgs: ts.Node[] = [];
-
-                node.forEachChild(c => {
-                    if (c.kind === ts.SyntaxKind.Identifier) {
-                        id = <ts.Identifier>c;
-                    } else if (c.kind === ts.SyntaxKind.TypeReference) {
-                        typeArgs.push(c);
+                const { identifier: id, typeArgs } = this.getIdentifierAndTypeArgs(node);
+                if (id) {
+                    if (schemaMap && schemaMap[id.text]) {
+                        return this.getNodeSchema((schemaMap[id.text]), schemaMap);
                     }
-                });
+                    const result = this.resolveByIdentifier(id, node, typeArgs, schemaMap);
+                    if (result) return result;
+                }
 
-                const result = id && this.resolveByIdentifier(id, node, typeArgs, schemaMap);
-                if (result) return result;
                 break;
         }
         if (type) return { type };
@@ -86,6 +82,27 @@ export class OpenApiSchemaFactory {
 
     getClassMetadata(id: ts.Identifier): TypeMetadata<ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration> {
         return this.typeMap.get(id.text);
+    }
+
+    private getIdentifierAndTypeArgs(node: ts.Node) {
+        let id: ts.Identifier;
+        const typeArgs: ts.Node[] = [];
+
+        node.forEachChild(c => {
+            if (c.kind === ts.SyntaxKind.Identifier) {
+                id = <ts.Identifier>c;
+            } else if (c.kind === ts.SyntaxKind.TypeReference
+                || c.kind === ts.SyntaxKind.StringKeyword
+                || c.kind === ts.SyntaxKind.NumberKeyword
+                || c.kind === ts.SyntaxKind.BigIntKeyword
+                || c.kind === ts.SyntaxKind.BooleanKeyword) {
+                typeArgs.push(c);
+            }
+        });
+        return {
+            identifier: id,
+            typeArgs
+        }
     }
 
     getClassSchema(
@@ -120,16 +137,30 @@ export class OpenApiSchemaFactory {
         return schemaRef;
     }
 
-    private getSchemaName(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration, typeArgs: ts.Node[]) {
+    private getSchemaName(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration, typeArgs: ts.Node[]) {
         let schemaName = declaration.name.text;
         if (typeArgs?.length) {
             const names: string[] = [];
             typeArgs.forEach(arg => {
-                arg.forEachChild(c => {
-                    if (c.kind === ts.SyntaxKind.Identifier) {
-                        names.push((c as ts.Identifier).text);
+                if (arg.kind === ts.SyntaxKind.StringKeyword) {
+                    names.push('String');
+                } else if (arg.kind === ts.SyntaxKind.NumberKeyword
+                    || arg.kind === ts.SyntaxKind.BigIntKeyword) {
+                    names.push('Number');
+                } else if (arg.kind === ts.SyntaxKind.BooleanKeyword) {
+                    names.push('Boolean');
+                } else {
+                    const { identifier, typeArgs } = this.getIdentifierAndTypeArgs(arg);
+                    if (!typeArgs) {
+                        names.push(identifier.text);
                     }
-                });
+                    const typeArgDeclaration = this.getClassMetadata(identifier);
+                    if (typeArgDeclaration) {
+                        names.push(this.getSchemaName(typeArgDeclaration.declaration, typeArgs));
+                    } else {
+                        names.push(identifier.text);
+                    }
+                }
             });
             schemaName = `${schemaName}Of${names.join('')}`;
         }
