@@ -43,14 +43,13 @@ export class OpenApiSchemaFactory {
                             id = <ts.Identifier>c;
                         }
                     });
-                    itemType = this.getNodeSchema(schemaMap[id.text] || r, schemaMap);
+                    itemType = this.getNodeSchema((id && schemaMap[id.text]) || r, schemaMap);
                 });
                 return {
                     type: 'array',
                     items: itemType,
                     uniqueItems: false
                 };
-
             case ts.SyntaxKind.TypeReference:
                 const { identifier: id, typeArgs } = this.getIdentifierAndTypeArgs(node);
                 if (id) {
