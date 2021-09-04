@@ -1,4 +1,4 @@
-import { Query, QueryParameter } from "@olaleyeone/node-rest";
+import { Query, QueryParameter } from "@matchmakerjs/matchmaker";
 import * as ts from "typescript";
 import { OpenApiSchemaFactory } from "../../factory/openapi-schema-factory";
 import { ArraySchema, ObjectSchema, Parameter, Schema } from "../../model/openapi";

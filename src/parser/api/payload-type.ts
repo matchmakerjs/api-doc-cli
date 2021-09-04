@@ -1,4 +1,4 @@
-import { RequestBody } from "@olaleyeone/node-rest";
+import { RequestBody } from "@matchmakerjs/matchmaker";
 import * as ts from "typescript";
 
 export function getPayloadType(methodDeclaration: ts.MethodDeclaration): ts.Node {

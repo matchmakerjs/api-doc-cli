@@ -1,4 +1,4 @@
-import { Delete, Get, Head, Patch, Post, Put } from "@olaleyeone/node-rest";
+import { Delete, Get, Head, Patch, Post, Put } from "@matchmakerjs/matchmaker";
 import * as ts from "typescript";
 import { MatchedDecorator } from "../decorator-parser";
 import { getPayloadType } from "./payload-type";

@@ -1,4 +1,4 @@
-import { RestController, parseUrl } from '@olaleyeone/node-rest';
+import { parseRouteSignature, RestController } from '@matchmakerjs/matchmaker';
 import * as ts from "typescript";
 import { OpenApiContentFactory } from './factory/openapi-content-factory';
 import { OpenApiSchemaFactory } from './factory/openapi-schema-factory';
@@ -69,7 +69,7 @@ function getPaths(program: ts.Program, schemaFactory: OpenApiSchemaFactory, cont
             }
 
             endpoint.paths.forEach(path => {
-                const segments = parseUrl(path);
+                const segments = parseRouteSignature(path);
                 const signature = `/${segments.map(segment => {
                     let result = '';
                     segment.parts.forEach(part => {
