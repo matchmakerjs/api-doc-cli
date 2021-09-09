@@ -1,8 +1,11 @@
 {
-  "name": "rest-doc-generator",
-  "version": "1.0.0",
+  "name": "@matchmakerjs/api-doc-cli",
+  "version": "0.0.1",
   "description": "OpenAPI doc generator for node-rest",
   "main": "dist/cli.js",
+  "files": [
+    "dist/**/*"
+  ],
   "bin": {
     "api-doc": "dist/cli.js"
   },
@@ -12,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/matchmakerjs/api-doc-generator.git"
+    "url": "git+https://github.com/matchmakerjs/api-doc-cli.git"
   },
   "keywords": [
     "openapi",
@@ -21,9 +24,9 @@
   "author": "Olaleye Afolabi",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/matchmakerjs/api-doc-generator/issues"
+    "url": "https://github.com/matchmakerjs/api-doc-cli/issues"
   },
-  "homepage": "https://github.com/matchmakerjs/api-doc-generator#readme",
+  "homepage": "https://github.com/matchmakerjs/api-doc-cli#readme",
   "dependencies": {
     "@matchmakerjs/matchmaker": "^0.0.1",
     "typescript": "^4.2.4",
