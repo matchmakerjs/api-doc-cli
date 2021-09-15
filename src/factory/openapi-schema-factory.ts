@@ -20,6 +20,14 @@ export class OpenApiSchemaFactory {
             return;
         }
         switch (node.kind) {
+            case ts.SyntaxKind.VoidKeyword:
+                type = 'null';
+                break;
+            case ts.SyntaxKind.ObjectKeyword:
+            case ts.SyntaxKind.AnyKeyword:
+            case ts.SyntaxKind.UnknownKeyword:
+                type = 'object';
+                break;
             case ts.SyntaxKind.BooleanKeyword:
                 type = 'boolean';
                 break;
@@ -212,6 +220,12 @@ export class OpenApiSchemaFactory {
     private resolveByIdentifier(id: ts.Identifier, node: ts.TypeNode | ts.Node, typeArgs: ts.Node[], schemaMap: { [key: string]: ts.Node }): Schema {
         const classMetadata = this.typeMap.get(id.text);
         if (!classMetadata) {
+            if (id.text === Buffer.name) {
+                return {
+                    type: 'string',
+                    format: 'binary'
+                };
+            }
             return;
         }
 
@@ -240,17 +254,22 @@ export class OpenApiSchemaFactory {
                 //         }
                 //     });
                 //     return this.getNodeSchema(promiseTypeArgs[0])
+                case Buffer.name:
+                    return {
+                        type: 'string',
+                        format: 'binary'
+                    };
                 case Date.name:
                     return {
                         type: 'string',
                         format: 'date-time'
-                    }
+                    };
                 case Array.name:
                 case Set.name:
                     const arrayTypeArgs: ts.Node[] = [];
                     node.forEachChild(c => {
                         if (c.kind === ts.SyntaxKind.Identifier) {
-                            return
+                            return;
                         } else {
                             arrayTypeArgs.push(c);
                         }
@@ -259,7 +278,7 @@ export class OpenApiSchemaFactory {
                         type: 'array',
                         items: this.getNodeSchema(arrayTypeArgs[0], schemaMap),
                         uniqueItems: classMetadata.declaration.name.text === Set.name
-                    }
+                    };
             }
         }
 
