@@ -184,7 +184,9 @@ export class OpenApiSchemaFactory {
 
         declaration.forEachChild(c => {
             if (c.kind === ts.SyntaxKind.PropertyDeclaration || c.kind === ts.SyntaxKind.PropertySignature) {
-                propertyNodes.push(c as any);
+                if (!this.isExcluded(c)) {
+                    propertyNodes.push(c as any);
+                }
             } else if (c.kind === ts.SyntaxKind.TypeParameter) {
                 typeParams.set(c, typeArgs[typeParams.size]);
             }
@@ -215,6 +217,32 @@ export class OpenApiSchemaFactory {
             type: 'object',
             properties
         }
+    }
+
+    private isExcluded(node: ts.Node) {
+
+        let isExcluded = false;
+        node.decorators?.forEach(decorator => {
+            decorator.forEachChild(c => {
+                if (c.kind !== ts.SyntaxKind.CallExpression) {
+                    return;
+                }
+                const callExpression = <ts.CallExpression>c;
+
+                callExpression?.forEachChild(it => {
+                    if (it.kind !== ts.SyntaxKind.Identifier) {
+                        return;
+                    }
+
+                    const method = (<ts.Identifier>it).text;
+
+                    if (method === 'Exclude') {
+                        isExcluded = true;
+                    }
+                });
+            })
+        });
+        return isExcluded;
     }
 
     private resolveByIdentifier(id: ts.Identifier, node: ts.TypeNode | ts.Node, typeArgs: ts.Node[], schemaMap: { [key: string]: ts.Node }): Schema {
