@@ -21,7 +21,7 @@ export class OpenApiSchemaFactory {
         }
         switch (node.kind) {
             case ts.SyntaxKind.VoidKeyword:
-                type = 'null';
+                type = 'string';
                 break;
             case ts.SyntaxKind.ObjectKeyword:
             case ts.SyntaxKind.AnyKeyword:

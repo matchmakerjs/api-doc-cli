@@ -1,4 +1,4 @@
 # Restful API doc generator
 
 ## Build
-`npm run build && npm link -f`
+`npm run build && chmod +x dist/cli.js && npm link -f`
