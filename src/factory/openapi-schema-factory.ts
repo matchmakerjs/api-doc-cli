@@ -270,7 +270,7 @@ export class OpenApiSchemaFactory {
             }
         }
 
-        if (classMetadata.declaration.getSourceFile().hasNoDefaultLib) {
+        if (classMetadata.declaration.getSourceFile().hasNoDefaultLib || classMetadata.declaration.name.text === Array.name) {
             switch (classMetadata.declaration.name.text) {
                 // case Promise.name:
                 //     const promiseTypeArgs: ts.Node[] = [];
