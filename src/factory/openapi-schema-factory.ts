@@ -62,10 +62,11 @@ export class OpenApiSchemaFactory {
                 const { identifier: id, typeArgs } = this.getIdentifierAndTypeArgs(node);
                 if (id) {
                     if (schemaMap && schemaMap[id.text]) {
-                        if (schemaMap[id.text].kind === ts.SyntaxKind.VoidKeyword) {
+                        const resolvedNode = schemaMap[id.text];
+                        if (resolvedNode.kind === ts.SyntaxKind.VoidKeyword) {
                             return;
                         }
-                        return this.getNodeSchema((schemaMap[id.text]), schemaMap);
+                        return this.getNodeSchema(resolvedNode, schemaMap);
                     }
                     const result = this.resolveByIdentifier(id, node, typeArgs, schemaMap);
                     if (result) return result;
@@ -114,7 +115,7 @@ export class OpenApiSchemaFactory {
         declaration: ts.ClassDeclaration | ts.InterfaceDeclaration,
         typeArgs: ts.Node[],
         schemaMap: { [key: string]: ts.Node }): ObjectSchema {
-        let schemaName = this.getSchemaName(declaration, typeArgs);
+        let schemaName = this.getSchemaName(declaration, typeArgs, schemaMap);
         const schema = this.schemaMap[schemaName];
         if (schema) {
             return schema;
@@ -130,7 +131,7 @@ export class OpenApiSchemaFactory {
         typeArgs: ts.Node[],
         schemaMap: { [key: string]: ts.Node }): SchemaRef {
 
-        let schemaName = this.getSchemaName(declaration, typeArgs);
+        let schemaName = this.getSchemaName(declaration, typeArgs, schemaMap);
 
         let schema = this.schemaMap[schemaName];
         const schemaRef = { $ref: `#/components/schemas/${schemaName}` };
@@ -142,7 +143,10 @@ export class OpenApiSchemaFactory {
         return schemaRef;
     }
 
-    private getSchemaName(declaration: ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration, typeArgs: ts.Node[]) {
+    private getSchemaName(
+        declaration: ts.ClassDeclaration | ts.InterfaceDeclaration | ts.EnumDeclaration,
+        typeArgs: ts.Node[],
+        schemaMap: { [key: string]: ts.Node }) {
         let schemaName = declaration.name.text;
         if (typeArgs?.length) {
             const names: string[] = [];
@@ -163,7 +167,14 @@ export class OpenApiSchemaFactory {
                     }
                     const typeArgDeclaration = this.getClassMetadata(identifier);
                     if (typeArgDeclaration) {
-                        names.push(this.getSchemaName(typeArgDeclaration.declaration, typeArgs));
+                        names.push(this.getSchemaName(typeArgDeclaration.declaration, typeArgs, schemaMap));
+                    } else if (schemaMap && schemaMap[identifier.text]) {
+                        schemaMap[identifier.text].forEachChild(c => {
+                            if (c.kind !== ts.SyntaxKind.Identifier) {
+                                return;
+                            }
+                            names.push(c.getText());
+                        });
                     } else {
                         names.push(identifier.text);
                     }
@@ -188,7 +199,17 @@ export class OpenApiSchemaFactory {
                     propertyNodes.push(c as any);
                 }
             } else if (c.kind === ts.SyntaxKind.TypeParameter) {
-                typeParams.set(c, typeArgs[typeParams.size]);
+                c.forEachChild(c1 => {
+                    if (c1.kind !== ts.SyntaxKind.Identifier) {
+                        return;
+                    }
+                    if (parentSchemaMap && parentSchemaMap[c1.getText()]) {
+                        typeParams.set(c, parentSchemaMap[c.getText()]);
+                    }
+                });
+                if (!typeParams.has(c)) {
+                    typeParams.set(c, typeArgs[typeParams.size]);
+                }
             }
         });
 
@@ -201,7 +222,7 @@ export class OpenApiSchemaFactory {
                 if (c.kind !== ts.SyntaxKind.Identifier) {
                     return;
                 }
-                schemaMap[(c as ts.Identifier).text] = val;
+                schemaMap[c.getText()] = val;
             });
         });
 
