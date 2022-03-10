@@ -87,25 +87,52 @@ function getRouteDoc(controllerPath: string[], methodDeclaration: ts.MethodDecla
 }
 
 function getPath(controllerPath: string[], callExpression: ts.CallExpression): string[] {
-    let handlerPaths = ['']
+    let handlerPaths: string[];
     if (callExpression.arguments.length) {
         const expression = callExpression.arguments[0];
-        if (expression.kind === ts.SyntaxKind.StringLiteral) {
-            handlerPaths = [(<ts.StringLiteral>expression).text];
-        }
-        if (expression.kind === ts.SyntaxKind.ArrayLiteralExpression) {
-            const result: string[] = [];
+
+        if (expression.kind === ts.SyntaxKind.ObjectLiteralExpression) {
             expression.forEachChild(c => {
-                if (c.kind === ts.SyntaxKind.StringLiteral) {
-                    result.push((<ts.StringLiteral>c).text);
+                if (c.kind === ts.SyntaxKind.PropertyAssignment) {
+                    let identifier: ts.Node;
+                    let value: ts.Node;
+                    c.forEachChild(pc => {
+                        if (pc.kind === ts.SyntaxKind.Identifier) {
+                            identifier = pc;
+                        } else {
+                            value = pc;
+                        }
+                    });
+                    if (identifier.getText() === 'path') {
+                        handlerPaths = getPathFromExpression(value);
+                    }
                 }
             });
-            return result;
+        } else {
+            handlerPaths = getPathFromExpression(expression);
         }
     }
     return controllerPath.flatMap(cp => {
-        return handlerPaths.map(hp => {
+        return (handlerPaths || ['']).map(hp => {
             return `/${cp}/${hp}`.replace(/\/{2,}/g, '/').replace(/\/$/, '');
         });
     });
+}
+
+function getPathFromExpression(expression: ts.Node): string[] {
+    if (expression.kind === ts.SyntaxKind.StringLiteral) {
+        return [(<ts.StringLiteral>expression).text];
+    }
+    if (expression.kind === ts.SyntaxKind.ArrayLiteralExpression) {
+        const result: string[] = [];
+        expression.forEachChild(c => {
+            if (c.kind === ts.SyntaxKind.StringLiteral) {
+                result.push((<ts.StringLiteral>c).text);
+            }
+        });
+        if (result?.length) {
+            return result;
+        }
+    }
+    return;
 }
