@@ -148,41 +148,42 @@ export class OpenApiSchemaFactory {
         typeArgs: ts.Node[],
         schemaMap: { [key: string]: ts.Node }) {
         let schemaName = declaration.name.text;
-        if (typeArgs?.length) {
-            const names: string[] = [];
-            typeArgs.forEach(arg => {
-                if (arg.kind === ts.SyntaxKind.VoidKeyword) {
-                    names.push('Void');
-                } else if (arg.kind === ts.SyntaxKind.StringKeyword) {
-                    names.push('String');
-                } else if (arg.kind === ts.SyntaxKind.NumberKeyword
-                    || arg.kind === ts.SyntaxKind.BigIntKeyword) {
-                    names.push('Number');
-                } else if (arg.kind === ts.SyntaxKind.BooleanKeyword) {
-                    names.push('Boolean');
-                } else if (arg.kind === ts.SyntaxKind.TypeReference) {
-                    const { identifier, typeArgs } = this.getIdentifierAndTypeArgs(arg);
-                    if (!typeArgs) {
-                        names.push(identifier.text);
-                    }
-                    const typeArgDeclaration = this.getClassMetadata(identifier);
-                    if (typeArgDeclaration) {
-                        names.push(this.getSchemaName(typeArgDeclaration.declaration, typeArgs, schemaMap));
-                    } else if (schemaMap && schemaMap[identifier.text]) {
-                        schemaMap[identifier.text].forEachChild(c => {
-                            if (c.kind !== ts.SyntaxKind.Identifier) {
-                                return;
-                            }
-                            names.push(c.getText());
-                        });
-                    } else {
-                        names.push(identifier.text);
-                    }
-                }
-            });
-            schemaName = `${schemaName}Of${names.join('And')}`;
+        if (!typeArgs?.length) {
+            return schemaName;
         }
-        return schemaName;
+
+        const names: string[] = [];
+        typeArgs.forEach(arg => {
+            if (arg.kind === ts.SyntaxKind.VoidKeyword) {
+                names.push('Void');
+            } else if (arg.kind === ts.SyntaxKind.StringKeyword) {
+                names.push('String');
+            } else if (arg.kind === ts.SyntaxKind.NumberKeyword
+                || arg.kind === ts.SyntaxKind.BigIntKeyword) {
+                names.push('Number');
+            } else if (arg.kind === ts.SyntaxKind.BooleanKeyword) {
+                names.push('Boolean');
+            } else if (arg.kind === ts.SyntaxKind.TypeReference) {
+                const { identifier, typeArgs } = this.getIdentifierAndTypeArgs(arg);
+                if (!typeArgs) {
+                    names.push(identifier.text);
+                }
+                const typeArgDeclaration = this.getClassMetadata(identifier);
+                if (typeArgDeclaration) {
+                    names.push(this.getSchemaName(typeArgDeclaration.declaration, typeArgs, schemaMap));
+                } else if (schemaMap && schemaMap[identifier.text]) {
+                    schemaMap[identifier.text].forEachChild(c => {
+                        if (c.kind !== ts.SyntaxKind.Identifier) {
+                            return;
+                        }
+                        names.push(c.getText());
+                    });
+                } else {
+                    names.push(identifier.text);
+                }
+            }
+        });
+        return `${schemaName}Of${names.join('And')}`;
     }
 
     private createObjectSchema(
@@ -287,7 +288,10 @@ export class OpenApiSchemaFactory {
             });
             return {
                 type: 'string',
-                enum: members.map(m => m.name.getText(classMetadata.sourceFile))
+                enum: members.map(m => m.initializer?.getText(classMetadata.sourceFile)
+                    .replace(/^['"]/g, '')
+                    .replace(/['"]$/g, '')
+                    || m.name.getText(classMetadata.sourceFile))
             }
         }
 
