@@ -5,9 +5,10 @@ export interface MatchedDecorator {
     argument: ts.NodeArray<ts.Expression>
 }
 
-export function getDecorators(node: ts.Node, identifier: string): MatchedDecorator[] {
+export function getDecorators(node: ts.HasDecorators, identifier: string): MatchedDecorator[] {
     const matched: MatchedDecorator[] = [];
-    node.decorators?.forEach(decorator => {
+
+    const handler = (decorator: ts.Decorator) => {
         decorator.forEachChild(c => {
             if (c.kind !== ts.SyntaxKind.CallExpression) {
                 return;
@@ -27,6 +28,9 @@ export function getDecorators(node: ts.Node, identifier: string): MatchedDecorat
                 });
             });
         });
-    });
+    };
+
+    (node.decorators as ts.Decorator[])?.forEach(handler);
+    ts.getDecorators(node)?.forEach(handler);
     return matched;
 }

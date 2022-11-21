@@ -195,8 +195,9 @@ export class OpenApiSchemaFactory {
         const propertyNodes: (ts.PropertyDeclaration | ts.PropertySignature)[] = [];
 
         declaration.forEachChild(c => {
-            if (c.kind === ts.SyntaxKind.PropertyDeclaration || c.kind === ts.SyntaxKind.PropertySignature) {
-                if (!this.isExcluded(c)) {
+            if (c.kind === ts.SyntaxKind.PropertyDeclaration
+                || c.kind === ts.SyntaxKind.PropertySignature) {
+                if (!this.isExcluded(c as ts.HasDecorators)) {
                     propertyNodes.push(c as any);
                 }
             } else if (c.kind === ts.SyntaxKind.TypeParameter) {
@@ -241,10 +242,10 @@ export class OpenApiSchemaFactory {
         }
     }
 
-    private isExcluded(node: ts.Node) {
+    private isExcluded(node: ts.HasDecorators) {
 
         let isExcluded = false;
-        node.decorators?.forEach(decorator => {
+        const handler = (decorator: ts.Decorator) => {
             decorator.forEachChild(c => {
                 if (c.kind !== ts.SyntaxKind.CallExpression) {
                     return;
@@ -262,8 +263,10 @@ export class OpenApiSchemaFactory {
                         isExcluded = true;
                     }
                 });
-            })
-        });
+            });
+        };
+        (node.decorators as ts.Decorator[])?.forEach(handler);
+        ts.getDecorators(node)?.forEach(handler);
         return isExcluded;
     }
 

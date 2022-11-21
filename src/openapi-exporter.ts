@@ -14,19 +14,22 @@ export function exportOpenApiDoc(entryPoint: string): Api {
     const schemaFactory = new OpenApiSchemaFactory();
     const contentFactory = new OpenApiContentFactory(schemaFactory)
 
-    const apiDoc: Api = {
+    return {
         openapi: "3.0.1",
         info: {
             title: 'open-api doc',
             version: 'v1'
         },
-        paths: getPaths(program, schemaFactory, contentFactory)
+        paths: getPaths(program, schemaFactory, contentFactory),
+        components: { schemas: schemaFactory.getAll() }
     };
-    apiDoc.components = { schemas: schemaFactory.getAll() };
-    return apiDoc;
 }
 
-function getPaths(program: ts.Program, schemaFactory: OpenApiSchemaFactory, contentFactory: OpenApiContentFactory): { [key: string]: OpenApiPath } {
+function getPaths(
+    program: ts.Program,
+    schemaFactory: OpenApiSchemaFactory,
+    contentFactory: OpenApiContentFactory
+): { [key: string]: OpenApiPath } {
     const sourceFiles = program.getSourceFiles();
     const controllerMap = new Map<ts.ClassDeclaration | ts.InterfaceDeclaration, MatchedDecorator[]>();
 
@@ -43,10 +46,12 @@ function getPaths(program: ts.Program, schemaFactory: OpenApiSchemaFactory, cont
             if (!c.getSourceFile() || c.getSourceFile().isDeclarationFile) {
                 return;
             }
-            const matched = getDecorators(c, RestController.name);
+
+            const matched = getDecorators(c as ts.HasDecorators, RestController.name);
             if (!matched?.length) {
                 return;
             }
+
             controllerMap.set(c, matched);
         });
     });

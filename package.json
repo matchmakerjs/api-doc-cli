@@ -29,11 +29,11 @@
   "homepage": "https://github.com/matchmakerjs/api-doc-cli#readme",
   "dependencies": {
     "@matchmakerjs/matchmaker": "^0.0.1",
-    "typescript": "^4.2.4",
+    "typescript": "^4.9.3",
     "yargs": "^17.0.1"
   },
   "devDependencies": {
-    "@types/node": "^15.0.2",
+    "@types/node": "^18.11.9",
     "@types/yargs": "^16.0.1",
     "rimraf": "^2.7.1",
     "ts-node": "^9.1.1"

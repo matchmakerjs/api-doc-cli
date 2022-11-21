@@ -2,24 +2,28 @@ import { RequestBody } from "@matchmakerjs/matchmaker";
 import * as ts from "typescript";
 
 export function getPayloadType(methodDeclaration: ts.MethodDeclaration): ts.Node {
-    const payloadParams = methodDeclaration.parameters.filter(param => {
-        return param.decorators?.filter(decorator => {
-            let val = false;
-            decorator.forEachChild(c => {
-                if (c.kind !== ts.SyntaxKind.CallExpression) {
+    const filter = (decorator: ts.Decorator) => {
+        let val = false;
+        decorator.forEachChild(c => {
+            if (c.kind !== ts.SyntaxKind.CallExpression) {
+                return;
+            }
+            c.forEachChild(it => {
+                if (it.kind !== ts.SyntaxKind.Identifier) {
                     return;
                 }
-                c.forEachChild(it => {
-                    if (it.kind !== ts.SyntaxKind.Identifier) {
-                        return;
-                    }
-                    if ((<ts.Identifier>it).text === RequestBody.name) {
-                        val = true;
-                    }
-                });
+                if ((<ts.Identifier>it).text === RequestBody.name) {
+                    val = true;
+                }
             });
-            return val;
-        }).length;
+        });
+
+        return val;
+    };
+
+    const payloadParams = methodDeclaration.parameters.filter(param => {
+        return (param.decorators as ts.Decorator[])?.filter(filter).length ||
+            ts.getDecorators(param)?.filter(filter).length;
     });
 
     if (payloadParams.length !== 1) {

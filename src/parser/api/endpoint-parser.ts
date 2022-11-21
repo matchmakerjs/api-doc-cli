@@ -48,7 +48,8 @@ export function getEnpoints(classDeclaration: ts.ClassDeclaration | ts.Interface
 
 function getRouteDoc(controllerPath: string[], methodDeclaration: ts.MethodDeclaration): Endpoint {
     let routeDoc: Endpoint;
-    methodDeclaration.decorators?.forEach(decorator => {
+
+    const handler = (decorator: ts.Decorator) => {
         decorator.forEachChild(c => {
             if (c.kind !== ts.SyntaxKind.CallExpression) {
                 return;
@@ -82,7 +83,9 @@ function getRouteDoc(controllerPath: string[], methodDeclaration: ts.MethodDecla
                 }
             });
         });
-    });
+    };
+    (methodDeclaration.decorators as ts.Decorator[])?.forEach(handler);
+    (ts.getDecorators(methodDeclaration))?.forEach(handler);
     return routeDoc;
 }
 
